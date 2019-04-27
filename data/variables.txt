@@ -1,0 +1,58 @@
+marij_ever, alguna vez ha usado marihuana
+marij_month
+marij_year
+
+cocaine_ever, alguna vez ha usado cocaína.
+cocaine_month, 
+cocaine_year, 
+
+crack_ever, alguna vez ha usado crack.
+crack_month, 
+crack_year, 
+
+heroin_ever, alguna vez ha usado heroína.
+heroin_month
+heroin_year
+
+hallucinogen_ever, alguna vez ha usado alucinogenos.
+hallucinogen_month
+hallucinogen_year
+
+inhalant_ever, alguna vez ha usado inhalantes.
+inhalant_month
+inhalant_year
+
+meth_ever, alguna vez ha usado metanfetaminas.
+meth_month
+meth_year
+
+painrelieve_ever, alguna vez ha usado calmantes de dolor.
+painrelieve_month
+painrelieve_year
+
+trang_ever, alguna vez ha usado tranquilizantes.
+trang_month
+trang_year
+
+stimulant_ever, alguna vez ha usado estimulantes.
+stimulant_month
+stimulant_year
+
+sedative_ever, alguna vez ha usado sedantes.
+sedative_month
+sedative_year
+
+pharmamonth. droga recetadas.
+ilicithmont, drogas ilegales
+ilicitmonth_nomj, drogas ilegales, no marihuana.
+
+countofdrugs_ever, cantidad de drogas.
+countofdrugs_month, cantidad de drogas en el ultimo mes 
+countofdrugs_year, cantidad de drogas en el ultimo año
+
+personalincome, ingresos por persona
+familyincome, ingresos familiares.
+employmentstatus, estado de empleo.
+race_num, raza.
+education, grado educativo
+
