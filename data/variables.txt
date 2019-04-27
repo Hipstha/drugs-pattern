@@ -55,4 +55,5 @@ familyincome, ingresos familiares.
 employmentstatus, estado de empleo.
 race_num, raza.
 education, grado educativo
+sex, sexo
 
