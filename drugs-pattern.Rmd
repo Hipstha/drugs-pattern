@@ -1,0 +1,675 @@
+---
+title: "Detección de patrones en el uso de drogas"
+author: "Daniel Alejandro Cruz Pérez"
+date: "13 de mayo de 2019"
+output: 
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_libraries, include=FALSE}
+library(factoextra)
+library(scales)
+library(ggplot2)
+```
+
+```{r load_files, include=FALSE}
+data.ever <- read.csv("../data/drug-test-ever.csv")
+data.ever$X<-NULL
+```
+
+#RESUMEN
+
+#PALABRAS CLAVE
+
+#INTRODUCCIÓN
+
+El dataset usado, en su mayoría de las variables presenta valores booleanos, donde 0 representa "No" y 1 representa "Si", hay algunos casos dónde la variable toma valores discretos entre 1 y 10, a continuación se explican los valores discretos:
+
+<table border="1">
+  <tr>
+    Ingresos personales (Por año en dólares) 
+    1.- Menos de $10,000
+    2.- $10,000 - $19,999
+    3.- $20,000 - $29,999
+    4.- $30,000 - $39,999
+    5.- $40,000 - $49,999
+    6.- $50,000 - $74,999
+    7.- Mas de $75,000
+  </tr>
+  <tr>
+    Ingresos familiares (Por año en dólares) 
+    1.- Menos de $10,000
+    2.- $10,000 - $19,999
+    3.- $20,000 - $29,999
+    4.- $30,000 - $39,999
+    5.- $40,000 - $49,999
+    6.- $50,000 - $74,999
+    7.- Mas de $75,000
+  </tr>
+  <tr>
+    Estado laboral
+    1.- Tiempo completo
+    2.- Medio tiempo
+    3.- Desempleado
+  </tr>
+  <tr>
+    Raza
+    1.- Blanco
+    2.- Afroamericano
+    3.- Nativo americano
+    4.- Hawaiano
+    5.- Asiático
+    6.- Mestizo
+    7.- Hispano
+  </tr>
+  <tr>
+    Grado de estudios
+    1.- Menor a preparatoria
+    2.- Sólo preparatoria
+    3.- Carrera trunca
+    4.- Carrera terminada
+    5.- 12 a 17 años de edad
+  </tr>
+  <tr>
+    Sexo
+    1.- Hombre
+    2.- Mujer
+  </tr>
+</table>
+
+#MARCO TEÓRICO
+
+#RESULTADOS
+
+##Análisis sobre individuos que alguna vez han probado drogas
+
+```{r transform_data, echo=FALSE}
+data.ever.scaled <- data.ever
+data.ever.scaled$countofdrugs_ever <- rescale(data.ever.scaled$countofdrugs_ever)
+data.ever.scaled$PersonalIncome <- rescale(data.ever.scaled$PersonalIncome)
+data.ever.scaled$FamilyIncome <- rescale(data.ever.scaled$FamilyIncome)
+data.ever.scaled$EmploymentStatus <- rescale(data.ever.scaled$EmploymentStatus)
+data.ever.scaled$race_num <- rescale(data.ever.scaled$race_num)
+data.ever.scaled$education <- rescale(data.ever.scaled$education)
+data.ever.scaled$sex <- rescale(data.ever.scaled$sex)
+summary(data.ever.scaled)
+```
+
+### Análisis para selección de número de clusters de individuos que alguna vez han probado drogas
+
+Se creo una gráfica tomando como variable dependiente el número de clusters 
+contra la suma de cuadrados dentro de los grupos, esto con la finalidad de 
+obtener el número que nos de un mayor volúmen de información útil, se utilizó
+la metodología 'elbow' para hacer una selección.
+
+El mejor resultado obtenido fue tomar 5 clusters, dándonos los siguientes resultados
+
+```{r cluster_numbers, echo=FALSE}
+set.seed(2019)
+submt <- kmeans(data.ever, centers=1)$betweenss
+for(i in 2:10) submt[i] <- kmeans(data.ever, centers=i)$betweenss
+plot(1:10, submt, type="b", xlab="número de clusters", ylab="suma de cuadrados inter grupos")
+```
+
+```{r cluster_creation, include=FALSE}
+data.ever.km <- kmeans(data.ever.scaled, center=5)
+
+```
+
+Inercia total:
+
+```{r, echo=FALSE}
+data.ever.km$totss
+```
+
+Inercia inter grupos
+
+```{r, echo=FALSE}
+data.ever.km$betweenss
+```
+
+Inercia intra grupos
+
+```{r, echo=FALSE}
+data.ever.km$withinss
+```
+
+Inercia intra grupos (total)
+
+```{r, echo=FALSE}
+data.ever.km$tot.withinss
+```
+
+```{r cluster_analysis, include=FALSE}
+data.ever$cluster <- data.ever.km$cluster
+data.ever.cl.1 <- data.ever[data.ever$cluster==1,]
+data.ever.cl.2 <- data.ever[data.ever$cluster==2,]
+data.ever.cl.3 <- data.ever[data.ever$cluster==3,]
+data.ever.cl.4 <- data.ever[data.ever$cluster==4,]
+data.ever.cl.5 <- data.ever[data.ever$cluster==5,]
+
+old.par = par()
+```
+
+### Análisis de clusters para individuos que alguna vez han probado drogas
+
+Para comprender de una mejor manera los valores que indica cada cluster,
+es necesario analizar cada variable con una gráfica de caja, esto con la intención de visualizar la manera en que se distribuyen los valores dentro de la variable.
+
+A continuación se muestra el análizis de cada cluster junto a su interpretación.
+
+#### Cluster No° 1
+
+La interpretación del Cluster No° 1 es la siguiente:
+
+1.- Todos los individuos han usado mariguana alguna vez.
+
+2.- Para el uso de cocaína, crack, heroína, alucinógenos, inhalantes, metanfetamina, calmantes de dolor, tranquilizantes, estimulantes y sedantes, una grán mayoría afirma no haber usado estos tipos de droga, pero a su vez para cada droga se presentan algunos casos atípicos.
+
+3.- La cantidad de drogas probadas ronda normalmente entre 1 y 2, presentando también algunos casos atípicos.
+
+4.- El promedio de ingresos personales es de $20,000 a $29,999.
+
+5.- El promedio de ingresos familiares es de $40,000 a $49,999.
+
+6.- En promedio, los individuos tienen un empleo de tiempo completo.
+
+7.- Predominan los individuos de raza blanca.
+
+8.- En su mayoría los individuos cuentan con carrera trunca.
+
+9.- Todos los individuos son mujeres.
+
+En resumen: Grupo en su totalidad de mujeres, todas afirman haber usado marihuana, la mayoría solo ha usado marihuana. Ingresos familiares de clase media, pero personales de clase media-baja. Usualmente cuenta con trabajo de tiempo completo. Se distribuyen entre raza blanca y afroamericana, siendo la blanca predominante. Grado de estudios mínimo de solo la preparatoria y máximo de carrera terminada, siendo carrera trunca lo típico.
+
+
+```{r cluster_1, echo=FALSE}
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.1$marij_ever, main="Uso de mariguana", ylab="valor")
+boxplot(data.ever.cl.1$cocaine_ever, main="Uso de cocaína", ylab="valor")
+boxplot(data.ever.cl.1$crack_ever, main="Uso de crack", ylab="valor")
+boxplot(data.ever.cl.1$heroin_ever, main="Uso de heroína", ylab="valor")
+boxplot(data.ever.cl.1$hallucinogen_ever, main="Uso de alucinógenos", ylab="valor")
+boxplot(data.ever.cl.1$inhalant_ever, main="Uso de inhalantes", ylab="valor")
+boxplot(data.ever.cl.1$meth_ever, main="Uso de metanfetamina", ylab="valor")
+boxplot(data.ever.cl.1$painrelieve_ever, main="Uso de calmantes de dolor", ylab="valor")
+
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.1$tranq_ever, main="Uso de tranquilizantes", ylab="valor")
+boxplot(data.ever.cl.1$stimulant_ever, main="Uso de estimulantes", ylab="valor")
+boxplot(data.ever.cl.1$sedative_ever, main="Uso de sedantes", ylab="valor")
+boxplot(data.ever.cl.1$countofdrugs_ever, main="Cantidad de drogas probadas", ylab="valor")
+boxplot(data.ever.cl.1$PersonalIncome, main="Ingresos personales", ylab="valor")
+boxplot(data.ever.cl.1$FamilyIncome, main="Ingresos familiares", ylab="valor")
+boxplot(data.ever.cl.1$EmploymentStatus, main="Estado laboral", ylab="valor")
+boxplot(data.ever.cl.1$race_num, main="Raza", ylab="valor")
+
+par(mfrow=c(1,2))
+boxplot(data.ever.cl.1$education, main="Grado de estudios", ylab="valor")
+boxplot(data.ever.cl.1$sex, main="Sexo", ylab="valor")
+```
+
+
+#### Cluster No° 2
+
+La interpretación del Cluster No° 2 es la siguiente:
+
+1.- La gran mayoría afirma haber usado marihuana, cocaína y alucinógenos.
+
+2.- La gran mayoría afirma no haber usado crack, heroína ni sedantes.
+
+3.- Es común el haber usado inhalantes, meranfetaminas, tranquilizantes y estimulantes, pero la mayoría no los ha usado.
+
+4.- Es común el haber usado calmantes de dolor, pero la mayoría los ha usado.
+
+5.- La cantidad de drogas probadas ronda entre 4 y 6.
+
+6.- Los ingresos personales en promedio rondan entre $20,000 y $29,999.
+
+7.- Los ingresos familiares en promedio rondan entre $50,000 y $74,999.
+
+8.- En promedio los individuos cuentan con un trabajo de tiempo completo.
+
+9.- En su gran mayoría, los individuos son de raza blanca.
+
+10.- En promedio, los individuos cuentan con una carrera sin terminar.
+
+11.- Predominan los hombres
+
+En resumen: Un grupo predominado por hombres de raza blanca. El mínimo grado de estudios es solo la preparatoria y el mayor una carrera terminada, siendo carrera trunca lo típico, cuentan con un trabajo de tiemplo completo. Sus ingresos familiares son de clase media-alta, pero sus ingresos personales son de clase media-baja. Presenta un gran uso de drogas, siendo la marihuana, cocaína y alucinógenos sus preferidos, además es común el uso de inhalantes, metanfetaminas, tranquilizantes y estimulantes, y aunque también es común el uso de crack, heroína y sedantes, prefiere evitarlos.
+
+```{r cluster_2, echo=FALSE}
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.2$marij_ever, main="Uso de mariguana", ylab="valor")
+boxplot(data.ever.cl.2$cocaine_ever, main="Uso de cocaína", ylab="valor")
+boxplot(data.ever.cl.2$crack_ever, main="Uso de crack", ylab="valor")
+boxplot(data.ever.cl.2$heroin_ever, main="Uso de heroína", ylab="valor")
+boxplot(data.ever.cl.2$hallucinogen_ever, main="Uso de alucinógenos", ylab="valor")
+boxplot(data.ever.cl.2$inhalant_ever, main="Uso de inhalantes", ylab="valor")
+boxplot(data.ever.cl.2$meth_ever, main="Uso de metanfetamina", ylab="valor")
+boxplot(data.ever.cl.2$painrelieve_ever, main="Uso de calmantes de dolor", ylab="valor")
+
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.2$tranq_ever, main="Uso de tranquilizantes", ylab="valor")
+boxplot(data.ever.cl.2$stimulant_ever, main="Uso de estimulantes", ylab="valor")
+boxplot(data.ever.cl.2$sedative_ever, main="Uso de sedantes", ylab="valor")
+boxplot(data.ever.cl.2$countofdrugs_ever, main="Cantidad de drogas probadas", ylab="valor")
+boxplot(data.ever.cl.2$PersonalIncome, main="Ingresos personales", ylab="valor")
+boxplot(data.ever.cl.2$FamilyIncome, main="Ingresos familiares", ylab="valor")
+boxplot(data.ever.cl.2$EmploymentStatus, main="Estado laboral", ylab="valor")
+boxplot(data.ever.cl.2$race_num, main="Raza", ylab="valor")
+
+par(mfrow=c(1,2))
+boxplot(data.ever.cl.2$education, main="Grado de estudios", ylab="valor")
+boxplot(data.ever.cl.2$sex, main="Sexo", ylab="valor")
+```
+
+#### Cluster No° 3
+
+La interpretación del Cluster No° 3 es la siguiente:
+
+1.- La gran mayoría afirma haber usado marihuana.
+
+2.- La gran mayoría afirma no haber usado cocaína, crack, heroína,
+alucinógenos, inhalantes, metanfetaminas, calmantes de dolor, tranquilizantes, estimulantes ni sedantes.
+
+3.- La cantidad de drogas probadas ronda entre 1 y 2, siendo 1 lo más normal.
+
+4.- Los ingresos personales rondan entre $10,000 y $19,999.
+
+5.- Los ingresos familiares rondan entre $30,000 - $39,999.
+
+6.- El promedio cuenta con un empleo de tiempo completo.
+
+7.- Participan todas las razas, pero predominan los afroamericanos.
+
+8.- El promedio cuenta sólo con preparatoria terminada.
+
+9.- En su gran mayoría son hombres.
+
+En resumen: Un grupo de todas las razas, pero en su mayoría hombres afroamericanos de clase media-baja, normalmente cuenta con un empleo de tiempo completo. El mínimo grado de estudios es solo la preparatoria y el mayor carrera trunca, siendo solo la preparatoria lo típico. En su mayoría ha usado marihuana, aunque no es común el uso de otras drogas, no se está cerrado a la posibilidad. Sus ingresos personales son apenas la mitad de sus ingresos familiares.
+
+```{r cluster_3, echo=FALSE}
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.3$marij_ever, main="Uso de mariguana", ylab="valor")
+boxplot(data.ever.cl.3$cocaine_ever, main="Uso de cocaína", ylab="valor")
+boxplot(data.ever.cl.3$crack_ever, main="Uso de crack", ylab="valor")
+boxplot(data.ever.cl.3$heroin_ever, main="Uso de heroína", ylab="valor")
+boxplot(data.ever.cl.3$hallucinogen_ever, main="Uso de alucinógenos", ylab="valor")
+boxplot(data.ever.cl.3$inhalant_ever, main="Uso de inhalantes", ylab="valor")
+boxplot(data.ever.cl.3$meth_ever, main="Uso de metanfetamina", ylab="valor")
+boxplot(data.ever.cl.3$painrelieve_ever, main="Uso de calmantes de dolor", ylab="valor")
+
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.3$tranq_ever, main="Uso de tranquilizantes", ylab="valor")
+boxplot(data.ever.cl.3$stimulant_ever, main="Uso de estimulantes", ylab="valor")
+boxplot(data.ever.cl.3$sedative_ever, main="Uso de sedantes", ylab="valor")
+boxplot(data.ever.cl.3$countofdrugs_ever, main="Cantidad de drogas probadas", ylab="valor")
+boxplot(data.ever.cl.3$PersonalIncome, main="Ingresos personales", ylab="valor")
+boxplot(data.ever.cl.3$FamilyIncome, main="Ingresos familiares", ylab="valor")
+boxplot(data.ever.cl.3$EmploymentStatus, main="Estado laboral", ylab="valor")
+boxplot(data.ever.cl.3$race_num, main="Raza", ylab="valor")
+
+par(mfrow=c(1,2))
+boxplot(data.ever.cl.3$education, main="Grado de estudios", ylab="valor")
+boxplot(data.ever.cl.3$sex, main="Sexo", ylab="valor")
+```
+
+#### Cluster No° 4
+
+La interpretación del Cluster No° 4 es la siguiente:
+
+1.- La gran mayoría niega haber usado marihuana, cocaína, crack, heroína, alucinógenos, metanfetaminas, tranquilizantes, estimulantes y sedantes.
+
+2.- Aunque es común el uso de inhalantes, la mayoría no los ha usado.
+
+3.- Aunque es común la mayoría de calmantes de dolor, la mayoría los ha usado.
+
+4.- La cantidad de drogas probadas ronda entre 1 y 2, siendo 1 lo típico.
+
+5.- Ingresos personales promedio de entre $20,000 y $29,999.
+
+6.- Ingresos familares promedio de entre $50,000 - $74,999.
+
+7.- En promedio se cuenta con un empleo de medio tiempo.
+
+8.- Se distribuyen entre raza blanca, afroamericana, nativo americano y hawaiana, pero predomina la raza blanca.
+
+9.- En promedio se cuenta con una carrera trunca.
+
+10.- Grupo de ambos sexos, pero predominan las mujeres.
+
+En resumen: Grupo predominado por mujeres, comunmente de raza blanca, aunque también se presentan afroamericanos, nativo americanos y hawaianos. Ingresos de clase media-alta, pero los personales son apenas la mitad de clase media. Comunmente cuentan con un empleo de tiempo completo y una carrera trunca. Aúnque es común el uso de inhalantes, la mayoría no los ha usado, es común el uso de calmantes de dolor. Grado de estudios entre sólo prepa y carrera terminada, siendo carrera trunca lo típico.
+
+```{r cluster_4, echo=FALSE}
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.4$marij_ever, main="Uso de mariguana", ylab="valor")
+boxplot(data.ever.cl.4$cocaine_ever, main="Uso de cocaína", ylab="valor")
+boxplot(data.ever.cl.4$crack_ever, main="Uso de crack", ylab="valor")
+boxplot(data.ever.cl.4$heroin_ever, main="Uso de heroína", ylab="valor")
+boxplot(data.ever.cl.4$hallucinogen_ever, main="Uso de alucinógenos", ylab="valor")
+boxplot(data.ever.cl.4$inhalant_ever, main="Uso de inhalantes", ylab="valor")
+boxplot(data.ever.cl.4$meth_ever, main="Uso de metanfetamina", ylab="valor")
+boxplot(data.ever.cl.4$painrelieve_ever, main="Uso de calmantes de dolor", ylab="valor")
+
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.4$tranq_ever, main="Uso de tranquilizantes", ylab="valor")
+boxplot(data.ever.cl.4$stimulant_ever, main="Uso de estimulantes", ylab="valor")
+boxplot(data.ever.cl.4$sedative_ever, main="Uso de sedantes", ylab="valor")
+boxplot(data.ever.cl.4$countofdrugs_ever, main="Cantidad de drogas probadas", ylab="valor")
+boxplot(data.ever.cl.4$PersonalIncome, main="Ingresos personales", ylab="valor")
+boxplot(data.ever.cl.4$FamilyIncome, main="Ingresos familiares", ylab="valor")
+boxplot(data.ever.cl.4$EmploymentStatus, main="Estado laboral", ylab="valor")
+boxplot(data.ever.cl.4$race_num, main="Raza", ylab="valor")
+
+par(mfrow=c(1,2))
+boxplot(data.ever.cl.4$education, main="Grado de estudios", ylab="valor")
+boxplot(data.ever.cl.4$sex, main="Sexo", ylab="valor")
+```
+
+#### Cluster No° 5
+
+La interpretación del Cluster No° 5 es la siguiente:
+
+1.- La gran mayoría afirma el uso de marihuana.
+
+2.- La gran mayoría niega el uso de cocaína, crack, heroína, alucinógenos, inhalantes, metanfetaminas, calmantes de dolor, tranquilizantes, estimulantes y sedantes.
+
+3.- La cantidad de drogas probadas ronda entre 1 y 2, siendo 1 lo típico.
+
+4.- Ingresos personales de entre $50,000 y $74,999.
+
+5.- Ingresos familiares superiores a $75,000.
+
+6.- Comunmente el grado mínimo de estudios es con carrera trunca y el mayor con carrera universitaria.
+
+8.- La gran mayoría de raza blanca.
+
+7.- Solamente hay hombres.
+
+En resumen: Un grupo exclusivamente de hombres, en su gran mayoría de raza blanca y clase alta, afirma sólo haber usado marihuana. El grado de estudios está entre carrera trunca y carrera universitaria terminada.
+
+```{r cluster_5, echo=FALSE}
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.5$marij_ever, main="Uso de mariguana", ylab="valor")
+boxplot(data.ever.cl.5$cocaine_ever, main="Uso de cocaína", ylab="valor")
+boxplot(data.ever.cl.5$crack_ever, main="Uso de crack", ylab="valor")
+boxplot(data.ever.cl.5$heroin_ever, main="Uso de heroína", ylab="valor")
+boxplot(data.ever.cl.5$hallucinogen_ever, main="Uso de alucinógenos", ylab="valor")
+boxplot(data.ever.cl.5$inhalant_ever, main="Uso de inhalantes", ylab="valor")
+boxplot(data.ever.cl.5$meth_ever, main="Uso de metanfetamina", ylab="valor")
+boxplot(data.ever.cl.5$painrelieve_ever, main="Uso de calmantes de dolor", ylab="valor")
+
+par(mfrow=c(2,4))
+boxplot(data.ever.cl.5$tranq_ever, main="Uso de tranquilizantes", ylab="valor")
+boxplot(data.ever.cl.5$stimulant_ever, main="Uso de estimulantes", ylab="valor")
+boxplot(data.ever.cl.5$sedative_ever, main="Uso de sedantes", ylab="valor")
+boxplot(data.ever.cl.5$countofdrugs_ever, main="Cantidad de drogas probadas", ylab="valor")
+boxplot(data.ever.cl.5$PersonalIncome, main="Ingresos personales", ylab="valor")
+boxplot(data.ever.cl.5$FamilyIncome, main="Ingresos familiares", ylab="valor")
+boxplot(data.ever.cl.5$EmploymentStatus, main="Estado laboral", ylab="valor")
+boxplot(data.ever.cl.5$race_num, main="Raza", ylab="valor")
+
+par(mfrow=c(1,2))
+boxplot(data.ever.cl.5$education, main="Grado de estudios", ylab="valor")
+boxplot(data.ever.cl.5$sex, main="Sexo", ylab="valor")
+
+```
+
+### Diagramas de agrupamiento
+
+A continuación se presentan los diagramas de agrupamiento de clusters según ciertas variables. Se anexa de igual forma la representación de cada cluster.
+
+Cluster 1:  Grupo en su totalidad de mujeres, todas afirman haber usado marihuana, la mayoría solo ha usado marihuana. Ingresos familiares de clase media, pero personales de clase media-baja. Usualmente cuenta con trabajo de tiempo completo. Se distribuyen entre raza blanca y afroamericana, siendo la blanca predominante. Grado de estudios mínimo de solo la preparatoria y máximo de carrera terminada, siendo carrera trunca lo típico.
+
+Cluster 2: Un grupo predominado por hombres de raza blanca. El mínimo grado de estudios es solo la preparatoria y el mayor una carrera terminada, siendo carrera trunca lo típico, cuentan con un trabajo de tiemplo completo. Sus ingresos familiares son de clase media-alta, pero sus ingresos personales son de clase media-baja. Presenta un gran uso de drogas, siendo la marihuana, cocaína y alucinógenos sus preferidos, además es común el uso de inhalantes, metanfetaminas, tranquilizantes y estimulantes, y aunque también es común el uso de crack, heroína y sedantes, prefiere evitarlos.
+
+Cluster 3: Un grupo de todas las razas, pero en su mayoría hombres afroamericanos de clase media-baja, normalmente cuenta con un empleo de tiempo completo. El mínimo grado de estudios es solo la preparatoria y el mayor carrera trunca, siendo solo la preparatoria lo típico. En su mayoría ha usado marihuana, aunque no es común el uso de otras drogas, no se está cerrado a la posibilidad. Sus ingresos personales son apenas la mitad de sus ingresos familiares.
+
+Cluster 4: Grupo predominado por mujeres, comunmente de raza blanca, aunque también se presentan afroamericanos, nativo americanos y hawaianos. Ingresos de clase media-alta, pero los personales son apenas la mitad de clase media. Comunmente cuentan con un empleo de tiempo completo y una carrera trunca. Aúnque es común el uso de inhalantes, la mayoría no los ha usado, es común el uso de calmantes de dolor. Grado de estudios entre sólo prepa y carrera terminada, siendo carrera trunca lo típico.
+
+Cluster 5: Un grupo exclusivamente de hombres, en su gran mayoría de raza blanca y clase alta, afirma sólo haber usado marihuana. El grado de estudios está entre carrera trunca y carrera universitaria terminada.
+
+#### Agrupamiento por análisis de componentes principales
+
+```{r analysis_pc, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+            pointsize = 2, main=FALSE) + theme_bw()
+```
+
+#### Agrupamientos por sexo
+
+##### Agrupamiento de Sexo vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Cantidad de drogas probadas")
+```
+
+##### Agrupamiento de Sexo vs Ingresos personales
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "PersonalIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Ingresos personales")
+```
+
+##### Agrupamiento de Sexo vs Ingresos familiares
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "FamilyIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Ingresos familiares")
+```
+
+##### Agrupamiento de Sexo vs Estado laboral
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "EmploymentStatus"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Estado laboral")
+```
+
+##### Agrupamiento de Sexo vs Raza
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "race_num"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Raza")
+```
+
+##### Agrupamiento de Sexo vs Grado de estudios
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("sex", "education"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Sexo",
+             ylab="Grado de estudios")
+```
+
+### Agrupamientos por grado de estudios
+
+#### Agrupamiento de grado de estudios vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("education", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Grado de estudios",
+             ylab="Cantidad de drogas probadas")
+```
+
+#### Agrupamiento de grado de estudios vs Ingresos personales
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("education", "PersonalIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Grado de estudios",
+             ylab="Ingresos personales")
+```
+
+#### Agrupamiento de grado de estudios vs Ingresos familiares
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("education", "FamilyIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Grado de estudios",
+             ylab="Ingresos familiares")
+```
+
+#### Agrupamiento de grado de estudios vs Estado laboral
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("education", "EmploymentStatus"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Grado de estudios",
+             ylab="Estado laboral")
+```
+
+#### Agrupamiento de grado de estudios vs Raza
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("education", "race_num"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Grado de estudios",
+             ylab="Raza")
+```
+
+### Agrupamientos por raza
+
+#### Agrupamiento de Raza vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("race_num", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Raza",
+             ylab="Cantidad de drogas probadas")
+```
+
+#### Agrupamiento de Raza vs Ingresos Personales
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("race_num", "PersonalIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Raza",
+             ylab="Ingresos Personales")
+```
+
+#### Agrupamiento de Raza vs Ingresos Familiares
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("race_num", "FamilyIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Raza",
+             ylab="Ingresos Familiares")
+```
+
+#### Agrupamiento de Raza vs Estado laboral
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("race_num", "EmploymentStatus"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Raza",
+             ylab="Estado laboral")
+```
+
+### Agrupamientos por estado laboral
+
+#### Agrupamiento de estado laboral vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("EmploymentStatus", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Estado laboral",
+             ylab="Cantidad de drogas probadas")
+```
+
+#### Agrupamiento de estado laboral vs Ingresos personales
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("EmploymentStatus", "PersonalIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Estado laboral",
+             ylab="Ingresos personales")
+```
+
+#### Agrupamiento de estado laboral vs Ingresos familiares
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("EmploymentStatus", "FamilyIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Estado laboral",
+             ylab="Ingresos familiares")
+```
+
+### Agrupamientos por ingresos familiares
+
+#### Agrupamiento de ingresos familiares vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("FamilyIncome", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Ingresos familiares",
+             ylab="Cantidad de drogas probadas")
+```
+
+#### Agrupamiento de ingresos familiares vs Ingresos personales
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("FamilyIncome", "PersonalIncome"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Ingresos familiares",
+             ylab="Ingresos personales")
+```
+
+### Agrupamiento por ingresos personales
+
+#### Agrupamiento de ingresos personales vs Cantidad de drogas probadas
+```{r, echo=FALSE}
+fviz_cluster(data.ever.km, data=data.ever, geom = "point",
+             choose.vars = c("PersonalIncome", "countofdrugs_ever"),
+             ellipse = FALSE, pointsize = 2, stand = FALSE,
+             main = FALSE,
+             xlab="Ingresos personales",
+             ylab="Cantidad de drogas probadas")
+```
+
+```{r, include=FALSE}
+graphics.off()
+```
+
+
+
+#DISCUSIÓN Y CONCLUSIONES
+
