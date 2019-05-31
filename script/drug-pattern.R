@@ -1,6 +1,9 @@
 library(factoextra)
 library(scales)
 library(ggplot2)
+library(cluster)
+library(fpc)
+library(ggplot2)
 
 ## Alguna vez --------------------------------------------
 #lECTURA DE INFORMACION
@@ -22,7 +25,22 @@ summary(data.ever.scaled)
 set.seed(2019)
 submt <- kmeans(data.ever, centers=1)$betweenss
 for(i in 2:10) submt[i] <- kmeans(data.ever, centers=i)$betweenss
-plot(1:10, submt, type="b", xlab="número de clusters", ylab="suma de cuadrados inter grupos")
+plot(1:10, submt, type="b", xlab="número de clusters", ylab="Diferencia entre grupos")
+abline(v = 3, col="red", lty=2)
+abline(v = 6, col="blue", lty=2)
+
+submt <- kmeans(data.ever, centers=1)$withinss
+for(i in 2:10) submt[i] <- kmeans(data.ever, centers=i)$withinss
+plot(1:10, submt, type="b", xlab="número de clusters", ylab="Diferencia dentro de grupos")
+abline(v = 3, col="red", lty=2)
+abline(v = 6, col="blue", lty=2)
+
+clarafit <- clara(data.ever.scaled, 3, samples = 1000)
+clarafit$medoids
+#km <- pam(data.ever.scaled, 3)
+fviz_cluster(clarafit, data=data.ever, geom = "point",
+             pointsize = 2, 
+             main="Agrupamiento por análisis de componentes principales") + theme_bw()
 
 
 #Creación de clusters
