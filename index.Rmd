@@ -1,0 +1,393 @@
+---
+title: "Detección de patrones en trabajadores con adicción a drogas."
+author: "Daniel Alejandro Cruz Pérez"
+date: "5 de Junio de 2019"
+output: 
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library, include=FALSE}
+library(knitr)
+library(factoextra)
+library(scales)
+library(ggplot2)
+library(cluster)
+library(fpc)
+```
+
+```{r load_data, include=FALSE}
+#lECTURA DE INFORMACION
+data.ever <- read.csv("data/drug-test-ever.csv")
+data.ever$X<-NULL
+
+#Transformación de datos
+data.ever.scaled <- data.ever
+data.ever.scaled$countofdrugs_ever <- rescale(data.ever.scaled$countofdrugs_ever)
+data.ever.scaled$PersonalIncome <- rescale(data.ever.scaled$PersonalIncome)
+data.ever.scaled$FamilyIncome <- rescale(data.ever.scaled$FamilyIncome)
+data.ever.scaled$EmploymentStatus <- rescale(data.ever.scaled$EmploymentStatus)
+data.ever.scaled$race_num <- rescale(data.ever.scaled$race_num)
+data.ever.scaled$education <- rescale(data.ever.scaled$education)
+data.ever.scaled$sex <- rescale(data.ever.scaled$sex)
+```
+
+```{r, include=FALSE}
+set.seed(1)
+```
+
+#INTRODUCCIÓN
+Para realizar el análisis, se utilizó una base de datos con las respuestas de la encuesta nacional sobre el consumo de drogas y salud o NSDUH por sus siglas en inglés (National Survey on Drug Use and Health) de Estados Unidos.
+
+Dicha base de datos se puede consultar en la siguiente liga:
+
+https://data.world/balexturner/drug-use-employment-work-absence-income-race-education/workspace/file?filename=NSDUH%20Workforce%20Adults.csv&fbclid=IwAR0QbL-SdeXS4yg_Jx5SsWBYSJgU87_kg4rBrjzJQPISJuhmL_NLm7_DTfg#_=_
+
+La base de datos, en su mayoría, presenta variables booleanas, dónde 0 representa "No" y 1 representa "Si", hay algunos casos dónde la variable toma valores discretos entre 1 y 10, a continuación se explican los valores discretos:
+
+<table border="1">
+  <tr>
+    Ingresos personales (Por año en dólares) 
+    1.- Menos de $10,000
+    2.- $10,000 - $19,999
+    3.- $20,000 - $29,999
+    4.- $30,000 - $39,999
+    5.- $40,000 - $49,999
+    6.- $50,000 - $74,999
+    7.- Más de $75,000
+  </tr>
+  <tr>
+    Ingresos familiares (Por año en dólares) 
+    1.- Menos de $10,000
+    2.- $10,000 - $19,999
+    3.- $20,000 - $29,999
+    4.- $30,000 - $39,999
+    5.- $40,000 - $49,999
+    6.- $50,000 - $74,999
+    7.- Más de $75,000
+  </tr>
+  <tr>
+    Estado laboral
+    1.- Tiempo completo
+    2.- Medio tiempo
+    3.- Desempleado
+  </tr>
+  <tr>
+    Raza
+    1.- Blanco
+    2.- Afroamericano
+    3.- Nativo americano
+    4.- Hawaiano
+    5.- Asiático
+    6.- Mestizo
+    7.- Hispano
+  </tr>
+  <tr>
+    Grado de estudios (Mayores de edad)
+    1.- Menor a preparatoria
+    2.- Solo preparatoria
+    3.- Carrera inconclusa
+    4.- Carrera terminada
+  </tr>
+  <tr>
+    Sexo
+    1.- Hombre
+    2.- Mujer
+  </tr>
+</table>
+
+#K-medoids con uso de CLARA, (clustering Large Applications)
+##Definición de K-medoids
+K-medoids es un algoritmo de agrupamiento relacionado al algoritmo k-means.
+
+Tanto el k-medoids como el k-means son algoritmos que trabajan con particiones (dividiendo el conjunto de datos en grupos) y ambos intentan minimizar la distancia entre puntos que se añadirían a un grupo y otro punto designado como el centro de ese grupo. En contraste con el algoritmo k-means, k-medoids escoge datapoints como centros y trabaja con una métrica arbitraria de distancias entre datapoints en vez de usar la norma l2. En 1987 se propuso este método para el trabajo con la norma l1 y otras distancias.
+
+K-medoid es una técnica clásica de particionado de grupos que divide los datos conformados por n objetos en k grupos (con k conocido de antemano).
+
+Es más robusto ante el ruido y a partes aisladas que k-means porque minimiza una suma de disimilaridades (entre pares de puntos) en vez de una suma de distancias euclidianas cuadradas.
+
+Un medoid puede ser definido como el objeto de un grupo cuya disimilaridad media a todos los objetos en el grupo es mínima. Es el punto ubicado más hacia el centro en todo el grupo.
+
+##Definición de CLARA
+En lugar de encontrar medoids para todo el conjunto de datos, Clara considera una pequeña muestra de los datos con un tamaño fijo y aplica el algoritmo PAM para generar un conjunto óptimo de medoids para la muestra. La calidad de los medoids resultantes se mide por la disimilitud promedio entre cada objeto en todo el conjunto de datos y el medoide de su agrupación, definida como la función  de costo.
+
+CLARA permite los procesos de muestreo y agrupación un número preespecificado de veces para minimizar el sesgo de muestreo. Los resultados finales de la agrupación corresponden con el conjunto de medoides con el costo mínimo.
+
+```{r, include=FALSE}
+submt <- kmeans(data.ever, centers=1)$betweenss
+for(i in 2:10) submt[i] <- kmeans(data.ever, centers=i)$betweenss
+```
+
+##Desarrollo
+Para poder analizar cuantos clusters es necesario tomar en cuenta, deberemos analizar la diferencia de cuadrados tanto para la diferencia entre los elementos entre un grupo a otros, como la diferencia de cada elemento dentro de los grupos.
+
+Para seleccionar el número óptimo de grupos, utilizamos el método "elbow".
+
+###Diferencia entre un grupo y otro
+
+```{r, echo=FALSE}
+plot(1:10, submt, type="b", xlab="Número de clusters", ylab="Diferencia entre un grupo y otro")
+abline(v = 6, col="blue", lty=2)
+```
+
+Como conclusión de la gráfica, podemos observar que el número optimo de grupos a seleccionar es 6, esto lo confirmaremos con el análisis de diferencia de cuadrados entre cada elemento del grupo
+
+###Diferencias entre elementos de cada grupo
+
+```{r, include=FALSE}
+submt <- kmeans(data.ever, centers=1)$withinss
+for(i in 2:10) submt[i] <- kmeans(data.ever, centers=i)$withinss
+```
+
+```{r, echo=FALSE}
+plot(1:10, submt, type="b", xlab="Número de clusters", ylab="Diferencias entre elementos de cada grupo")
+abline(v = 6, col="blue", lty=2)
+```
+
+##Patrones en los 6 grupos
+
+```{r, include=FALSE}
+clarafit <- clara(data.ever.scaled, 6, samples = 1000)
+df <- as.data.frame(clarafit$medoids)
+```
+
+Podemos representar dichos patrones en el diagrama de división de clusters
+
+```{r, echo=FALSE}
+fviz_cluster(clarafit, data=data.ever, geom = "point",
+             pointsize = 2, 
+             main="Agrupamiento por análisis de componentes principales") + theme_bw()
+```
+
+Dónde cada clusters representa:
+
+```{r, include=FALSE}
+dft <- as.data.frame(t(df))
+colnames(dft)
+names(dft)[names(dft) == "V1"] <- "Cluster 1"
+names(dft)[names(dft) == "V2"] <- "Cluster 2"
+names(dft)[names(dft) == "V3"] <- "Cluster 3"
+names(dft)[names(dft) == "V4"] <- "Cluster 4"
+names(dft)[names(dft) == "V5"] <- "Cluster 5"
+names(dft)[names(dft) == "V6"] <- "Cluster 6"
+
+for(i in 1:ncol(dft)){
+  if(dft[1, i]==1){
+    dft[1, i]<-"Si"
+  }else{
+    dft[1, i]<-"No"
+  }
+  if(dft[2, i]==1){
+    dft[2, i]<-"Si"
+  }else{
+    dft[2, i]<-"No"
+  }
+  if(dft[3, i]==1){
+    dft[3, i]<-"Si"
+  }else{
+    dft[3, i]<-"No"
+  }
+  if(dft[4, i]==1){
+    dft[4, i]<-"Si"
+  }else{
+    dft[4, i]<-"No"
+  }
+  if(dft[5, i]==1){
+    dft[5, i]<-"Si"
+  }else{
+    dft[5, i]<-"No"
+  }
+  if(dft[6, i]==1){
+    dft[6, i]<-"Si"
+  }else{
+    dft[6, i]<-"No"
+  }
+  if(dft[7, i]==1){
+    dft[7, i]<-"Si"
+  }else{
+    dft[7, i]<-"No"
+  }
+  if(dft[8, i]==1){
+    dft[8, i]<-"Si"
+  }else{
+    dft[8, i]<-"No"
+  }
+  if(dft[9, i]==1){
+    dft[9, i]<-"Si"
+  }else{
+    dft[9, i]<-"No"
+  }
+  if(dft[10, i]==1){
+    dft[10, i]<-"Si"
+  }else{
+    dft[10, i]<-"No"
+  }
+  if(dft[11, i]==1){
+    dft[11, i]<-"Si"
+  }else{
+    dft[11, i]<-"No"
+  }
+  if(as.numeric(dft[12, i])<0.1){
+    dft[12, i] <- 1
+  }else if(as.numeric(dft[12, i])>0.1 && as.numeric(dft[12, i]) < 0.2){
+    dft[12, i] <- 2
+  }else if(as.numeric(dft[12, i])>0.2 && as.numeric(dft[12, i]) < 0.3){
+    dft[12, i] <- 3
+  }else if(as.numeric(dft[12, i])>0.3 && as.numeric(dft[12, i]) < 0.4){
+    dft[12, i] <- 4
+  }else if(as.numeric(dft[12, i])>0.4 && as.numeric(dft[12, i]) < 0.5){
+    dft[12, i] <- 5
+  }else if(as.numeric(dft[12, i])>0.5 && as.numeric(dft[12, i]) < 0.6){
+    dft[12, i] <- 6
+  }else if(as.numeric(dft[12, i])>0.6 && as.numeric(dft[12, i]) < 0.7){
+    dft[12, i] <- 7
+  }else if(as.numeric(dft[12, i])>0.7 && as.numeric(dft[12, i]) < 0.8){
+    dft[12, i] <- 8
+  }else if(as.numeric(dft[12, i])>0.8 && as.numeric(dft[12, i]) < 0.9){
+    dft[12, i] <- 9
+  }else if(as.numeric(dft[12, i])==1){
+    dft[12, i] <- 10
+  }
+  
+  if(as.numeric(dft[13, i])<0.1){
+    dft[13, i] <- "Menores a $10,000"
+  }else if(as.numeric(dft[13, i])>0.1 && as.numeric(dft[13, i]) < 0.3){
+    dft[13, i] <- "Entre $10,000 - $19,999"
+  }else if(as.numeric(dft[13, i])>0.3 && as.numeric(dft[13, i]) < 0.4){
+    dft[13, i] <- "Entre $20,000 - $29,999"
+  }else if(as.numeric(dft[13, i])>0.4 && as.numeric(dft[13, i]) < 0.6){
+    dft[13, i] <- "Entre $30,000 - $39,999"
+  }else if(as.numeric(dft[13, i])>0.6 && as.numeric(dft[13, i]) < 0.8){
+    dft[13, i] <- "Entre $40,000 - $49,999"
+  }else if(as.numeric(dft[13, i])>0.81 && as.numeric(dft[13, i]) < 0.9){
+    dft[13, i] <- "Entre $50,000 - $74,999"
+  }else if(as.numeric(dft[13, i])==1){
+    dft[13, i] <- "Más de $75,000"
+  }
+  
+  if(as.numeric(dft[14, i])<0.1){
+    dft[14, i] <- "Menores a $10,000"
+  }else if(as.numeric(dft[14, i])>0.1 && as.numeric(dft[14, i]) < 0.3){
+    dft[14, i] <- "Entre $10,000 - $19,999"
+  }else if(as.numeric(dft[14, i])>0.3 && as.numeric(dft[14, i]) < 0.4){
+    dft[14, i] <- "Entre $20,000 - $29,999"
+  }else if(as.numeric(dft[14, i])>0.4 && as.numeric(dft[14, i]) < 0.6){
+    dft[14, i] <- "Entre $30,000 - $39,999"
+  }else if(as.numeric(dft[14, i])>0.6 && as.numeric(dft[14, i]) < 0.8){
+    dft[14, i] <- "Entre $40,000 - $49,999"
+  }else if(as.numeric(dft[14, i])>0.81 && as.numeric(dft[14, i]) < 0.9){
+    dft[14, i] <- "Entre $50,000 - $74,999"
+  }else if(as.numeric(dft[14, i])==1){
+    dft[14, i] <- "Más de $75,000"
+  }
+  
+  if(as.numeric(dft[15, i])==0){
+    dft[15, i] <- "Tiempo completo"
+  }else if(as.numeric(dft[15, i])==0.5){
+    dft[15, i] <- "Medio tiempo"
+  }else if(as.numeric(dft[15, i])==1){
+    dft[15, i] <- "Desempleo"
+  }
+  
+  if(as.numeric(dft[16, i])<0.1){
+    dft[16, i] <- "Raza blanca"
+  }else if(as.numeric(dft[16, i])>0.1 && as.numeric(dft[16, i]) < 0.3){
+    dft[16, i] <- "Raza afroamericana"
+  }else if(as.numeric(dft[16, i])>0.3 && as.numeric(dft[16, i]) < 0.4){
+    dft[16, i] <- "Raza nativa americana"
+  }else if(as.numeric(dft[16, i])>0.4 && as.numeric(dft[16, i]) < 0.6){
+    dft[16, i] <- "Raza hawaiana"
+  }else if(as.numeric(dft[16, i])>0.6 && as.numeric(dft[16, i]) < 0.8){
+    dft[16, i] <- "Raza asiática"
+  }else if(as.numeric(dft[16, i])>0.81 && as.numeric(dft[16, i]) < 0.9){
+    dft[16, i] <- "Raza mestiza"
+  }else if(as.numeric(dft[16, i])==1){
+    dft[16, i] <- "Raza hispana"
+  }
+  
+  if(as.numeric(dft[17, i])<0.1){
+    dft[17, i] <- "Menores a preparatoria"
+  }else if(as.numeric(dft[17, i])>0.1 && as.numeric(dft[17, i]) < 0.4){
+    dft[17, i] <- "Solo preparatoria"
+  }else if(as.numeric(dft[17, i])>0.4 && as.numeric(dft[17, i]) < 0.9){
+    dft[17, i] <- "Carrera inconclusa"
+  }else if(as.numeric(dft[17, i])==1){
+    dft[17, i] <- "Carrera terminada"
+  }
+  
+  if(as.numeric(dft[18, i])==0){
+    dft[18, i] <- "Hombres"
+  }else if(as.numeric(dft[18, i])==1){
+    dft[18, i] <- "Mujeres"
+  }
+}
+rownames(dft)[rownames(dft) == "marij_ever"] <- "Marihuana"
+rownames(dft)[rownames(dft) == "cocaine_ever"] <- "Cocaína"
+rownames(dft)[rownames(dft) == "crack_ever"] <- "Crack"
+rownames(dft)[rownames(dft) == "heroin_ever"] <- "Heroína"
+rownames(dft)[rownames(dft) == "hallucinogen_ever"] <- "Alucinógenos"
+rownames(dft)[rownames(dft) == "inhalant_ever"] <- "Inhalantes"
+rownames(dft)[rownames(dft) == "meth_ever"] <- "Metanfetamínas"
+rownames(dft)[rownames(dft) == "painrelieve_ever"] <- "Calmantes de dolor"
+rownames(dft)[rownames(dft) == "tranq_ever"] <- "Tranquilizantes"
+rownames(dft)[rownames(dft) == "stimulant_ever"] <- "Estimulantes"
+rownames(dft)[rownames(dft) == "sedative_ever"] <- "Sedantes"
+rownames(dft)[rownames(dft) == "countofdrugs_ever"] <- "Cantidad de drogas diferentes probadas por persona"
+rownames(dft)[rownames(dft) == "PersonalIncome"] <- "Ingresos personales"
+rownames(dft)[rownames(dft) == "FamilyIncome"] <- "Ingresos familiares"
+rownames(dft)[rownames(dft) == "EmploymentStatus"] <- "Estado de empleo"
+rownames(dft)[rownames(dft) == "race_num"] <- "Raza predominante"
+rownames(dft)[rownames(dft) == "education"] <- "Máximo grado de estudios alcanzados"
+rownames(dft)[rownames(dft) == "sex"] <- "Sexo predominante"
+```
+
+```{r, echo=FALSE, results="asis"}
+kable(dft)
+```
+
+#Características generales
+##Cluster 1
+Personas que alguna vez han usado marihuana, cocaína, alucinógenos y/o sedantes, 
+solo han probado 3 de entre dichas drogas, nivel socioeconómico medio-alto con
+un trabajo de tiempo completo. Personas de raza blanca, carrera incompleta y generalmente son hombres.
+
+##Cluster 2
+Personas que únicamente han usado marihuana, ingresos personales medios pero 
+familiares medio-altos. Trabajo de tiempo completo, de raza afroamericana
+y con carrera inconclusa. Generalmente son mujeres.
+
+##Cluster 3
+Personas con uso de marihuana, cocaína, alucinógenos, inhalantes, metanfetaminas,
+calmantes de dolor, tranquilizantes y/o sedantes. Ingresos personales de clase
+baja, familiares de clase media. Cuentan con trabajo de tiempo completo, son personas de raza blanca con estudios hasta la preparatoria. Por lo general son hombres.
+
+##Cluster 4
+Personas que únicamente han usado marihuana, con ingresos personales y familiares medio-altos. Con trabajo de tiempo completo, de raza blanca, carrera inconclusa. Por lo general son hombres.
+
+##Cluster 5
+Personas que únicamente han usado marihuana, con ingresos personales de clase baja y familiares de clase media-baja. Con empleo de medio tiempo, raza mestiza, estudios solo hasta la preparatoria. Por lo general son hombres.
+
+##Cluster 6
+Personas que únicamente han usado marihuana, ingresos personales y familiares de clase baja, empleo de medio tiempo y de raza afroamericana. Estudios solo hasta la preparatoria. Por lo general son mujeres.
+
+#Conclusiones
+De los datos presentados anteriormente, podemos deducir lo siguiente:
+
+1.- Todas las personas que han consumido drogas, presentan uso de marihuana, siendo ésta la más popular entre personas trabajadoras.
+
+2.- El crack, heroína y estimulantes no son populares entre personas trabajadoras.
+
+3.- Lo común entre trabajadores que han probado mas de una droga, es usar marihuana, cocaína, y alucinógenos.
+
+4.- Las personas de raza blanca con ingresos personales bajos tienden a probar mayor cantidad de drogas.
+
+5.- Los ingresos familiares no mantienen una correlación con la cantidad de diferentes drogas probadas.
+
+6.- Los trabajadores de raza blanca tienden a probar mayor cantidad de drogas.
+
+7.- Las mujeres trabajadoras de raza afroamericana son mas propensas al uso de marihuana que los hombres trabajadores de raza afroamericana.
